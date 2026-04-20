@@ -82,7 +82,7 @@ class handler(BaseHTTPRequestHandler):
                     "number": item.get("number"),
                     "state": item.get("state"),
                     "amount": int(float(item.get("amount", {}).get("total", 0))),
-                    "status": item.get("challan_status"),
+                    "challan_status": item.get("challan_status"),
                     "date": (v.get("date") or "").replace("T", " ").split(".")[0],
                     "name": name,
                     "location": v.get("location"),

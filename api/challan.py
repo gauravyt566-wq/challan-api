@@ -26,6 +26,7 @@ HEADERS = {
     "Cookie": COOKIE
 }
 
+
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed_url = urlparse(self.path)
@@ -47,19 +48,61 @@ class handler(BaseHTTPRequestHandler):
             return
 
         vehicle_number = vehicle_number.upper().replace(" ", "")
-
         url = f"https://www.acko.com/vas/api/v1/challans/?registration-number={vehicle_number}&source=CHALLAN_PAGE"
 
         try:
             response = requests.get(url, headers=HEADERS, timeout=15)
-            raw_data = response.json()
+            raw = response.json()
+
+            data = []
+            for item in raw.get("data", []):
+                v = item.get("violations", {})
+
+                # Clean offences
+                offences = []
+                for d in v.get("details", []):
+                    off = d.get("offence", "")
+                    off = off.replace("( NA )", "").replace("( null )", "")
+                    off = " ".join(off.split())
+                    if "(" in off:
+                        off = off.split("(")[0].strip()
+                    if off:
+                        offences.append(off)
+
+                # Extract name (masked) from owner or violations
+                name = (
+                    item.get("owner_name")
+                    or item.get("name")
+                    or v.get("owner_name")
+                    or v.get("name")
+                    or None
+                )
+
+                # Extract source
+                source = (
+                    item.get("source")
+                    or v.get("source")
+                    or None
+                )
+
+                data.append({
+                    "number": item.get("number"),
+                    "state": item.get("state"),
+                    "amount": int(float(item.get("amount", {}).get("total", 0))),
+                    "status": item.get("challan_status"),
+                    "date": (v.get("date") or "").replace("T", " ").split(".")[0],
+                    "name": name,
+                    "location": v.get("location"),
+                    "source": source,
+                    "offences": list(set(offences))
+                })
 
             result = {
                 "success": True,
                 "vehicle_number": vehicle_number,
-                "status_code": response.status_code,
-                "fetched_at": datetime.now(timezone.utc).isoformat(),
-                "data": raw_data
+                "total_challans": len(data),
+                "fetched_on": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                "data": data
             }
 
             self.wfile.write(json.dumps(result, indent=2).encode())

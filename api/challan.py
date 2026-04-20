@@ -69,19 +69,12 @@ class handler(BaseHTTPRequestHandler):
                     if off:
                         offences.append(off)
 
-                # Extract name (masked) from owner or violations
+                # Extract name
                 name = (
                     item.get("owner_name")
                     or item.get("name")
                     or v.get("owner_name")
                     or v.get("name")
-                    or None
-                )
-
-                # Extract source
-                source = (
-                    item.get("source")
-                    or v.get("source")
                     or None
                 )
 
@@ -93,15 +86,12 @@ class handler(BaseHTTPRequestHandler):
                     "date": (v.get("date") or "").replace("T", " ").split(".")[0],
                     "name": name,
                     "location": v.get("location"),
-                    "source": source,
+                    "source": item.get("challan_search_source"),
                     "offences": list(set(offences))
                 })
 
             result = {
                 "success": True,
-                "vehicle_number": vehicle_number,
-                "total_challans": len(data),
-                "fetched_on": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
                 "data": data
             }
 

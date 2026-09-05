@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify
 import requests
 
-app = Flask(name)
+app = Flask(__name__)
 
 API_URL = "https://backend.vahandetails.com/api/get-challans-details"
 API_KEY = "Test_1234"
+
 
 @app.route("/", methods=["GET"])
 def home():
@@ -12,6 +13,7 @@ def home():
         "status": True,
         "message": "Challan API Running"
     })
+
 
 @app.route("/challan", methods=["GET"])
 def challan():
@@ -34,23 +36,26 @@ def challan():
     }
 
     try:
-        response = requests.post(API_URL, json=payload, headers=headers, timeout=30)
+        response = requests.post(
+            API_URL,
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
 
         try:
             data = response.json()
-        except:
+        except ValueError:
             return jsonify({
                 "status": False,
+                "message": "Upstream returned invalid JSON",
                 "raw": response.text
-            }), 500
+            }), 502
 
-        return jsonify(data)
+        return jsonify(data), response.status_code
 
-    except Exception as e:
+    except requests.RequestException as e:
         return jsonify({
             "status": False,
             "error": str(e)
-        }), 500
-
-if name == "main":
-    app.run(debug=True)
+        }), 502
